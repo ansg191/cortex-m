@@ -1,6 +1,6 @@
 //! Interrupts
 
-pub use bare_metal::{CriticalSection, Mutex, Nr};
+pub use bare_metal::{CriticalSection, Mutex};
 
 /// Trait for enums of external interrupt numbers.
 ///
@@ -21,15 +21,6 @@ pub unsafe trait InterruptNumber: Copy {
     ///
     /// See trait documentation for safety requirements.
     fn number(self) -> u16;
-}
-
-/// Implement InterruptNumber for the old bare_metal::Nr trait.
-/// This implementation is for backwards compatibility only and will be removed in cortex-m 0.8.
-unsafe impl<T: Nr + Copy> InterruptNumber for T {
-    #[inline]
-    fn number(self) -> u16 {
-        self.nr() as u16
-    }
 }
 
 /// Disables all interrupts
@@ -54,14 +45,14 @@ pub unsafe fn enable() {
 #[inline]
 pub fn free<F, R>(f: F) -> R
 where
-    F: FnOnce(&CriticalSection) -> R,
+    F: FnOnce(CriticalSection) -> R,
 {
     let primask = crate::register::primask::read();
 
     // disable interrupts
     disable();
 
-    let r = f(unsafe { &CriticalSection::new() });
+    let r = f(unsafe { CriticalSection::new() });
 
     // If the interrupts were active before our `disable` call, then re-enable
     // them. Otherwise, keep them disabled
